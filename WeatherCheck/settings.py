@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
 
     'weather',
 
@@ -69,6 +70,9 @@ TEMPLATES = [
         },
     },
 ]
+
+LOGIN_REDIRECT_URL = '/main_page'
+
 
 WSGI_APPLICATION = 'WeatherCheck.wsgi.application'
 

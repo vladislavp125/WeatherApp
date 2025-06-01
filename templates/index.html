@@ -2,24 +2,238 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Погода</title>
+    <title>Прогноз погоды</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .topbar {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 14px;
+        }
+
+        .topbar span {
+            margin-right: 10px;
+            font-weight: bold;
+        }
+
+        .topbar a {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .topbar a:hover {
+            text-decoration: underline;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 100%;
+            max-width: 350px;
+        }
+
+        h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+            text-align: left;
+            position: relative;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        .suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #fff;
+            border: 1px solid #ccc;
+            border-top: none;
+            z-index: 10;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .suggestions div {
+            padding: 10px;
+            cursor: pointer;
+        }
+
+        .suggestions div:hover {
+            background-color: #f0f0f0;
+        }
+
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px;
+            width: 100%;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .btn:hover {
+            background: #0056b3;
+        }
+        .history-panel {
+        position: absolute;
+        top: 30px;
+        right: 30px;
+        background-color: #ffffff;
+        border: 1px solid #ccc;
+        border-radius: 10px;
+        padding: 15px 20px;
+        width: 220px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .history-panel h3 {
+        margin-top: 0;
+        margin-bottom: 10px;
+        font-size: 18px;
+        color: #333;
+    }
+
+    .history-panel ul {
+        list-style-type: none;
+        padding-left: 0;
+        margin: 0;
+    }
+
+    .history-panel li {
+        padding: 8px;
+        cursor: pointer;
+        color: #007bff;
+        border-radius: 5px;
+        transition: background 0.2s;
+    }
+
+    .history-panel li:hover {
+        background-color: #f0f0f0;
+        text-decoration: underline;
+    }
+    </style>
 </head>
 <body>
-    <h1>Прогноз погоды</h1>
-    <form method="post">
-        {% csrf_token %}
-        <input type="text" name="city" placeholder="Введите город" required>
-        <button type="submit">Показать</button>
-    </form>
 
-    {% if city %}
-        <h2>Погода в {{ city }}</h2>
-        {% if forecast.error %}
-            <p>{{ forecast.error }}</p>
-        {% else %}
-            <p>Температура: {{ forecast.current_weather.temperature }} °C</p>
-            <p>Ветер: {{ forecast.current_weather.windspeed }} км/ч</p>
-        {% endif %}
+    {% if request.user.is_authenticated %}
+    <div class="topbar">
+        <span>{{ request.user.username }}</span>
+        <a href="{% url 'logout' %}">Выйти</a>
+    </div>
     {% endif %}
+
+    <div class="container">
+        <h2>Погода в городе</h2>
+        <form id="weather-form" method="post" autocomplete="off">
+            {% csrf_token %}
+            <div class="input-group">
+                <label for="city">Город</label>
+                <input type="text" id="city" name="city" placeholder="Введите город" required>
+                <div class="suggestions" id="suggestions"></div>
+            </div>
+            <button type="submit" class="btn">Показать</button>
+        </form>
+
+        {% if city %}
+            <h3>{{ city }}</h3>
+            {% if forecast.error %}
+                <p>{{ forecast.error }}</p>
+            {% else %}
+                <p>Температура: {{ forecast.current_weather.temperature }} °C</p>
+                <p>Ветер: {{ forecast.current_weather.windspeed }} км/ч</p>
+            {% endif %}
+        {% endif %}
+    </div>
+
+    {% if history %}
+    <div class="history-panel">
+        <h3>История</h3>
+        <ul>
+            {% for city in history %}
+                <li onclick="submitCity('{{ city }}')">{{ city }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endif %}
+
+    <script>
+        const input = document.getElementById("city");
+        const suggestions = document.getElementById("suggestions");
+
+        input.addEventListener("input", async () => {
+            const query = input.value.trim();
+            if (query.length < 2) {
+                suggestions.innerHTML = "";
+                return;
+            }
+
+            try {
+                const response = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=ru`);
+                const data = await response.json();
+
+                suggestions.innerHTML = "";
+
+                if (data.results) {
+                    data.results.forEach(city => {
+                        const div = document.createElement("div");
+                        div.textContent = `${city.name}, ${city.country}`;
+                        div.addEventListener("click", () => {
+                            input.value = city.name;
+                            suggestions.innerHTML = "";
+                        });
+                        suggestions.appendChild(div);
+                    });
+                }
+            } catch (error) {
+                console.error("Ошибка при получении подсказок:", error);
+            }
+        });
+
+        function submitCity(city) {
+            const form = document.getElementById('weather-form');
+            const input = document.getElementById('city');
+            input.value = city;
+            form.submit();
+        }
+
+        document.addEventListener("click", (event) => {
+            if (!input.contains(event.target) && !suggestions.contains(event.target)) {
+                suggestions.innerHTML = "";
+            }
+        });
+    </script>
 </body>
 </html>
