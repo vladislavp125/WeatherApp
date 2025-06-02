@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+import os
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,7 +22,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-7eb%&e2)e7)k5qd_%0ehlbj6c-k7io@s-z8nf_pl!@6yrq3i25'
+SECRET_KEY = os.getenv('SECRET_KEY') #'django-insecure-7eb%&e2)e7)k5qd_%0ehlbj6c-k7io@s-z8nf_pl!@6yrq3i25'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -83,11 +85,11 @@ WSGI_APPLICATION = 'WeatherCheck.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'weather_check',
-        'USER': 'postgres',
-        'PASSWORD': '123',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'NAME': os.getenv('POSTGRES_DB', 'weatherdb'),
+        'USER': os.getenv('POSTGRES_USER', 'weatheruser'),
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'weatherpass'),
+        'HOST': os.getenv('POSTGRES_HOST', 'db'),
+        'PORT': os.getenv('POSTGRES_PORT', '5432'),
     }
 }
 
